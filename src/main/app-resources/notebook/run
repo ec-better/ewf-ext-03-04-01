@@ -201,8 +201,29 @@ def main():
     os.makedirs(tmp_dir)
   
     # Loops over all the inputs
-    for reference in sys.stdin:
-      references.append(reference.rstrip())
+    #for reference in sys.stdin:
+      #references.append(reference.rstrip())
+      
+    startdate = ciop.getparam('startdate')
+    enddate = ciop.getparam('enddate')
+    catalogue_url = ciop.getparam('catalogue_url')
+    product_name = ciop.getparam('product_name')
+    
+    search_params =  dict([('start', startdate),
+                           ('stop', enddate),
+                           ('count', 'unlimited'),
+                           ('q', '*' + product_name + '*')])
+
+    search = ciop.search(end_point=catalogue_url,
+                         params=search_params,
+                         output_fields='self,identifier,startdate,enclosure',
+                         pagination = 100,
+                         model='EOP')
+
+    for s in search:
+      #print(s['self'])
+      references.append(s['self'])
+
     
     # stage-in the data
     stage_in()

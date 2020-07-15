@@ -11,7 +11,7 @@
     <version>2.0.0</version>
   </parent>
   <description>Temperature and Chlorophyll anomalies for coastal areas</description>
-  <version>0.7</version>
+  <version>0.8-SNAPSHOT</version>
   <properties>
     <summary>Temperature and Chlorophyll anomalies for coastal areas</summary>
     <description>Temperature and Chlorophyll anomalies for coastal areas</description>

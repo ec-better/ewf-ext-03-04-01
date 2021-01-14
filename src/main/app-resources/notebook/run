@@ -12,6 +12,8 @@ import nbformat as nbf
 import uuid
 import ast
 
+import pandas as pd
+
 sys.path.append('/opt/anaconda/bin/')
 import cioppy
 ciop = cioppy.Cioppy()
@@ -207,22 +209,35 @@ def main():
     startdate = ciop.getparam('startdate')
     enddate = ciop.getparam('enddate')
     catalogue_url = ciop.getparam('catalogue_url')
-    product_name = ciop.getparam('product_name')
-    
+
     search_params =  dict([('start', startdate),
                            ('stop', enddate),
-                           ('count', 'unlimited'),
-                           ('q', '*' + product_name + '*')])
+                           ('count', 'unlimited')])
 
-    search = ciop.search(end_point=catalogue_url,
+    ciop.log('INFO', 'Searching in: ' + catalogue_url)
+    ciop.log('INFO', 'startdate: ' + startdate)
+    ciop.log('INFO', 'enddate: ' + enddate)
+
+    search = ciop.search(end_point=catalogue_url, 
                          params=search_params,
-                         output_fields='self,identifier,startdate,enclosure',
-                         pagination = 100,
-                         model='EOP')
+                         output_fields='self,identifier,startdate,enddate,enclosure,title,updated', pagination = 100, timeout=300000, 
+                         model='GeoTime')
 
-    for s in search:
-      #print(s['self'])
-      references.append(s['self'])
+
+    input_metadata = pd.DataFrame.from_dict(search)
+    print input_metadata
+
+    if 'sea_surface_temperature' == ciop.getparam('image_variable'):
+        prods = input_metadata[input_metadata['enclosure'].str.contains("SST")]
+
+    else:
+        prods = input_metadata[input_metadata['enclosure'].str.contains("PFTC")]
+
+
+    for r in prods['self'].tolist():
+        references.append(r)
+
+    ciop.log('INFO', 'Found: ' + str(len(references)) + ' references')
 
     
     # stage-in the data

@@ -12,6 +12,8 @@ import nbformat as nbf
 import uuid
 import ast
 
+import pandas as pd
+
 sys.path.append('/opt/anaconda/bin/')
 import cioppy
 ciop = cioppy.Cioppy()
@@ -126,6 +128,22 @@ ciop = cioppy.Cioppy()"""))
     with open(fname, 'w') as f:
       nbf.write(nb_stagein, f)  
         
+#def stage_in():
+ 
+    #for reference in references:
+      #ciop.log('INFO', 'The input reference is: ' + reference)    
+      
+      #search = ciop.search(end_point = reference, params = [], output_fields='enclosure,identifier', model='GeoTime')
+      #assert(search), sys.exit(ERR_RESOLUTION)
+  
+      #ciop.log('INFO', 'Retrieve %s from %s' % (search[0]['identifier'], search[0]['enclosure']))
+      #retrieved = ciop.copy(search[0]['enclosure'], tmp_dir)
+      #assert(retrieved), sys.exit(ERR_STAGEIN)
+
+      #identifiers.append(search[0]['identifier'])
+      #enclosures.append(search[0]['enclosure'])
+      #local_files.append(retrieved) 
+      
 def stage_in():
  
     for reference in references:
@@ -133,14 +151,24 @@ def stage_in():
       
       search = ciop.search(end_point = reference, params = [], output_fields='enclosure,identifier', model='GeoTime')
       assert(search), sys.exit(ERR_RESOLUTION)
+      e= search[0]['enclosure']
   
       ciop.log('INFO', 'Retrieve %s from %s' % (search[0]['identifier'], search[0]['enclosure']))
-      retrieved = ciop.copy(search[0]['enclosure'], tmp_dir)
+      try:
+          e1 = e[0:-70:]
+          e2 = e[33::]
+          e = e1 + 'medsea-sst/' + e2
+          retrieved = ciop.copy(e, tmp_dir) 
+      except:
+          retrieved = ciop.copy(e, tmp_dir)      
       assert(retrieved), sys.exit(ERR_STAGEIN)
 
       identifiers.append(search[0]['identifier'])
-      enclosures.append(search[0]['enclosure'])
+      enclosures.append(e)
       local_files.append(retrieved) 
+      print 'ENCLOSURES HERE '
+      print enclosures
+      
 
 def execute(nb_source, nb_target, kernel = 'python2'):
     
@@ -207,22 +235,39 @@ def main():
     startdate = ciop.getparam('startdate')
     enddate = ciop.getparam('enddate')
     catalogue_url = ciop.getparam('catalogue_url')
-    product_name = ciop.getparam('product_name')
-    
+
     search_params =  dict([('start', startdate),
                            ('stop', enddate),
-                           ('count', 'unlimited'),
-                           ('q', '*' + product_name + '*')])
+                           ('count', 'unlimited')])
 
-    search = ciop.search(end_point=catalogue_url,
+    ciop.log('INFO', 'Searching in: ' + catalogue_url)
+    ciop.log('INFO', 'startdate: ' + startdate)
+    ciop.log('INFO', 'enddate: ' + enddate)
+
+    search = ciop.search(end_point=catalogue_url, 
                          params=search_params,
-                         output_fields='self,identifier,startdate,enclosure',
-                         pagination = 100,
-                         model='EOP')
+                         output_fields='self,identifier,startdate,enddate,enclosure,title,updated', pagination = 100, timeout=300000, 
+                         model='GeoTime')
 
-    for s in search:
-      #print(s['self'])
-      references.append(s['self'])
+
+    input_metadata = pd.DataFrame.from_dict(search)
+
+    if 'sea_surface_temperature' == ciop.getparam('image_variable'):
+        prods = input_metadata[input_metadata['enclosure'].str.contains("SST_HR")]
+
+    else:
+        prods = input_metadata[input_metadata['enclosure'].str.contains("PFTC-MedBFM1-MED")]
+    print prods  
+    print ciop.getparam('image_variable'), 'sea_surface_temperature'
+
+
+    for r in prods['self'].tolist():
+        print 'References11111:'
+        ciop.log('INFO', 'Reference11111:' + r)
+        references.append(r)
+        
+
+    ciop.log('INFO', 'Found: ' + str(len(references)) + ' references')
 
     
     # stage-in the data

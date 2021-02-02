@@ -154,13 +154,17 @@ def stage_in():
       e= search[0]['enclosure']
   
       ciop.log('INFO', 'Retrieve %s from %s' % (search[0]['identifier'], search[0]['enclosure']))
+      
       try:
-          e1 = e[0:-70:]
-          e2 = e[33::]
-          e = e1 + 'medsea-sst/' + e2
-          retrieved = ciop.copy(e, tmp_dir) 
-      except:
-          retrieved = ciop.copy(e, tmp_dir)      
+          retrieved = ciop.copy(e, tmp_dir)
+      except Exception as ex:
+          if 'download' not in e:
+              e=e.replace('cmems','cmems/medsea-sst')
+              retrieved = ciop.copy(e, tmp_dir)
+          else:
+              ciop.log('ERROR', ex)
+              sys.exit(ERR_STAGEIN)
+      
       assert(retrieved), sys.exit(ERR_STAGEIN)
 
       identifiers.append(search[0]['identifier'])
